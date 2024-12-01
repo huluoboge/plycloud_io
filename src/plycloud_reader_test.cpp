@@ -24,8 +24,11 @@ int main()
         setter.registerAttribute("y", [](MyPoint& pt, const PlyDataType& data) { pt.y = data.floatVal; });
         setter.registerAttribute("z", [](MyPoint& pt, const PlyDataType& data) { pt.z = data.floatVal; });
         setter.registerAttribute("red", [](MyPoint& pt, const PlyDataType& data) { pt.r = data.ucharVal; });
+        setter.registerAttribute("r", [](MyPoint& pt, const PlyDataType& data) { pt.r = data.ucharVal; });
         setter.registerAttribute("green", [](MyPoint& pt, const PlyDataType& data) { pt.g = data.ucharVal; });
+        setter.registerAttribute("g", [](MyPoint& pt, const PlyDataType& data) { pt.g = data.ucharVal; });
         setter.registerAttribute("blue", [](MyPoint& pt, const PlyDataType& data) { pt.b = data.ucharVal; });
+        setter.registerAttribute("b", [](MyPoint& pt, const PlyDataType& data) { pt.b = data.ucharVal; });
 
         reader.prepareReadFunction(&setter);
 
