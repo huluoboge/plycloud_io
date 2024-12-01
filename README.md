@@ -29,7 +29,7 @@ struct MyPointType {
     float x, y, z;
     uint8_t r, g, b;
 };
-REGISTER_PLY_WRITE_POINT(MyPointType, (float, x)(float, y)(float, z)(uint8_t, r)(uint8_t, g)(uint8_t, b))
+REGISTER_PLY_WRITE_POINT(MyPointType, (float, x, x)(float, y, y)(float, z, z)(uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b))
 
 ```
 ## Write to Stream

@@ -3,6 +3,9 @@
 #define PLYCLOUD_IO_HPP
 
 #include <boost/preprocessor/cat.hpp>
+// #define BOOST_PP_CAT(a, b) BOOST_PP_CAT_I(a, b)
+// #define BOOST_PP_CAT_I(a, b) a##b
+
 #include <cstdint>
 #include <fstream>
 #include <iomanip>
@@ -182,21 +185,21 @@ struct PlyWritePointTraits {
 // These macros help transform the unusual data structure (type, name, tag)(type, name, tag)...
 // into a proper preprocessor sequence of 3-tuples ((type, name, tag))((type, name, tag))...
 
-#define REGISTER_POINT_STRUCT_X(type, name) \
-    PLY_WRITE_PROPERTY(type, name)          \
+#define REGISTER_POINT_STRUCT_X(type, name, val) \
+    PLY_WRITE_PROPERTY(type, name)               \
     REGISTER_POINT_STRUCT_Y
-#define REGISTER_POINT_STRUCT_Y(type, name) \
-    PLY_WRITE_PROPERTY(type, name)          \
+#define REGISTER_POINT_STRUCT_Y(type, name, val) \
+    PLY_WRITE_PROPERTY(type, name)               \
     REGISTER_POINT_STRUCT_X
 
 #define REGISTER_POINT_STRUCT_X0
 #define REGISTER_POINT_STRUCT_Y0
 
-#define REGISTER_POINT_STRUCT_XX(type, name) \
-    PLY_WRITER_POINT(type, name)             \
+#define REGISTER_POINT_STRUCT_XX(type, name, val) \
+    PLY_WRITER_POINT(type, val)                   \
     REGISTER_POINT_STRUCT_YY
-#define REGISTER_POINT_STRUCT_YY(type, name) \
-    PLY_WRITER_POINT(type, name)             \
+#define REGISTER_POINT_STRUCT_YY(type, name, val) \
+    PLY_WRITER_POINT(type, val)                   \
     REGISTER_POINT_STRUCT_XX
 
 #define REGISTER_POINT_STRUCT_XX0
@@ -350,26 +353,26 @@ struct PlyPointXYZ {
     float operator[](int i) const { return data[i]; };
 };
 
-REGISTER_PLY_WRITE_POINT(PlyPointXYZ, (float, x)(float, y)(float, z))
+REGISTER_PLY_WRITE_POINT(PlyPointXYZ, (float, x, x)(float, y, y)(float, z, z))
 
 struct PlyPointXYZI : public PlyPointXYZ {
     float intensity = 0;
 };
 
-REGISTER_PLY_WRITE_POINT(PlyPointXYZI, (float, x)(float, y)(float, z)(float, intensity))
+REGISTER_PLY_WRITE_POINT(PlyPointXYZI, (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity))
 
 struct PlyPointXYZRGB : public PlyPointXYZ {
     uint8_t r = 0, g = 0, b = 0;
 };
 
 REGISTER_PLY_WRITE_POINT(PlyPointXYZRGB,
-    (float, x)(float, y)(float, z)(uint8_t, r)(uint8_t, g)(uint8_t, b))
+    (float, x, x)(float, y, y)(float, z, z)(uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b))
 
 struct PlyPointXYZN : public PlyPointXYZ {
     float nx = 0, ny = 0, nz = 0;
 };
 
-REGISTER_PLY_WRITE_POINT(PlyPointXYZN, (float, x)(float, y)(float, z)(float, nx)(float, ny)(float, nz))
+REGISTER_PLY_WRITE_POINT(PlyPointXYZN, (float, x, x)(float, y, y)(float, z, z)(float, nx, nx)(float, ny, ny)(float, nz, nz))
 
 struct PlyPointXYZIRGB : public PlyPointXYZ {
     float intensity = 0;
@@ -377,7 +380,7 @@ struct PlyPointXYZIRGB : public PlyPointXYZ {
 };
 
 REGISTER_PLY_WRITE_POINT(PlyPointXYZIRGB,
-    (float, x)(float, y)(float, z)(float, intensity)(uint8_t, r)(uint8_t, g)(uint8_t, b))
+    (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)(uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b))
 
 struct PlyPointXYZIN : public PlyPointXYZ {
     float intensity = 0;
@@ -385,7 +388,7 @@ struct PlyPointXYZIN : public PlyPointXYZ {
 };
 
 REGISTER_PLY_WRITE_POINT(PlyPointXYZIN,
-    (float, x)(float, y)(float, z)(float, intensity)(float, nx)(float, ny)(float, nz))
+    (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)(float, nx, nx)(float, ny, ny)(float, nz, nz))
 
 struct PlyPointXYZRGBN : public PlyPointXYZ {
     float nx = 0, ny = 0, nz = 0;
@@ -393,7 +396,7 @@ struct PlyPointXYZRGBN : public PlyPointXYZ {
 };
 
 REGISTER_PLY_WRITE_POINT(PlyPointXYZRGBN,
-    (float, x)(float, y)(float, z)(float, nx)(float, ny)(float, nz)(uint8_t, r)(uint8_t, g)(uint8_t, b))
+    (float, x, x)(float, y, y)(float, z, z)(float, nx, nx)(float, ny, ny)(float, nz, nz)(uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b))
 
 struct PlyPointXYZIRGBN : public PlyPointXYZ {
     float intensity = 0;
@@ -402,7 +405,7 @@ struct PlyPointXYZIRGBN : public PlyPointXYZ {
 };
 
 REGISTER_PLY_WRITE_POINT(PlyPointXYZIRGBN,
-    (float, x)(float, y)(float, z)(float, intensity)(float, nx)(float, ny)(float, nz)(uint8_t, r)(uint8_t, g)(uint8_t, b))
+    (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)(float, nx, nx)(float, ny, ny)(float, nz, nz)(uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b))
 
 // custom your point type
 

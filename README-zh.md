@@ -27,7 +27,7 @@ PlyCloud IO 提供了一个基于C++模板的框架，用于将点云数据写�
        float x, y, z;
        uint8_t r, g, b;
    };
-   REGISTER_PLY_WRITE_POINT(MyPointType, (float, x)(float, y)(float, z)(uint8_t, r)(uint8_t, g)(uint8_t, b))
+   REGISTER_PLY_WRITE_POINT(MyPointType, (float, x, x)(float, y, y)(float, z, z)(uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b))
 ```
 3. **写入流**：使用你的点类型实例化一个PlyPointFileStreamWriter或PlyPointStreamWriter，开始向流写入点。
 ### 宏
