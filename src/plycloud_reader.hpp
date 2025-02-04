@@ -268,14 +268,6 @@ static bool PlyReadHead(std::istream& is, PlyHeader& header)
     return true;
 }
 
-// #define PARSE_VAL(name, type, value) \
-//     if (nameFlags == name) {         \
-//         pt.value = val.type##Val;    \
-//     } else
-
-// #define PARSE_VAL_END \
-//     {                 \
-//     }
 class BasePointAttributeSetter {
 public:
     virtual void applyAttributes(const PlyHeader& header) = 0;

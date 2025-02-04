@@ -1,4 +1,5 @@
-#include "plycloud_io.hpp"
+#include "plycloud_point.hpp"
+#include "plycloud_writer.hpp"
 
 #include <sstream>
 
