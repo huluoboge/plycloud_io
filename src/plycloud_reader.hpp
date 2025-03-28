@@ -9,13 +9,13 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <numeric>
 #include <sstream>
 #include <unordered_map>
 #include <vector>
 
 namespace plyio {
-
 enum PlyTypeEnum {
     type_char = 1,
     type_uchar = 2,
@@ -359,17 +359,19 @@ struct PlyPointStreamReader {
     {
         setter->applyAttributes(head);
         baseSetter = setter;
-        getPointTypeSetters()[typeid(PointType).name()] = setter;
     }
 
     // if not set custom setter, use default setter
     template <typename PointType>
     void preparePointAttribute()
     {
-        if (getPointTypeSetters().count(typeid(PointType).name()) == 0) {
+        if (!baseSetter) {
             prepareReadFunction(make_setter<PointType>());
         } else {
-            baseSetter = getPointTypeSetters()[typeid(PointType).name()];
+            PointAttributeSetter<PointType>* setter = dynamic_cast<PointAttributeSetter<PointType>*>(baseSetter.get());
+            if (!setter) {
+                prepareReadFunction(make_setter<PointType>());
+            }
         }
     }
 
@@ -390,13 +392,17 @@ struct PlyPointStreamReader {
     std::istream& is;
     std::shared_ptr<BasePointAttributeSetter> baseSetter;
 
-    static std::unordered_map<std::string, std::shared_ptr<BasePointAttributeSetter>>& getPointTypeSetters()
-    {
-        static std::unordered_map<std::string, std::shared_ptr<BasePointAttributeSetter>> pointTypeSetters;
-        return pointTypeSetters;
-    };
+    // static std::unordered_map<std::string, std::shared_ptr<BasePointAttributeSetter>>& getPointTypeSetters()
+    // {
+    //     static std::unordered_map<std::string, std::shared_ptr<BasePointAttributeSetter>> pointTypeSetters;
+    //     return pointTypeSetters;
+    // };
+    // static std::recursive_mutex& mutex()
+    // {
+    //     static std::recursive_mutex g_mutex;
+    //     return g_mutex;
+    // };
 };
-
 // TODO add stream state
 template <typename PointType>
 class PlyPointFileStreamReaderIterator : public std::iterator<std::input_iterator_tag, PointType> {
