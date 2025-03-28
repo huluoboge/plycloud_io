@@ -8,10 +8,13 @@
 #include <iostream>
 #include <limits>
 #include <map>
+#include <memory>
 #include <numeric>
 #include <sstream>
 #include <unordered_map>
 #include <vector>
+
+namespace plyio {
 
 enum PlyTypeEnum {
     type_char = 1,
@@ -34,49 +37,42 @@ union PlyDataType {
     double doubleVal;
 };
 
-// template <typename PointType>
-// struct NameMapTraits {
-//     static void setNameMap(std::unordered_map<std::string, int>& nameMap)
-//     {
-//     }
-// };
-
 namespace inner {
-class splitstring : public std::string {
-    std::vector<std::string> flds;
+    class splitstring : public std::string {
+        std::vector<std::string> flds;
 
-public:
-    splitstring(const char* s)
-        : std::string(s) { };
-    std::vector<std::string>& split(char delim, int rep = 0);
-};
+    public:
+        splitstring(const char* s)
+            : std::string(s) { };
+        std::vector<std::string>& split(char delim, int rep = 0);
+    };
 
-inline std::vector<std::string>& splitstring::split(char delim, int rep)
-{
-    if (!flds.empty())
-        flds.clear(); // empty vector if necessary
-    if (empty()) {
+    inline std::vector<std::string>& splitstring::split(char delim, int rep)
+    {
+        if (!flds.empty())
+            flds.clear(); // empty vector if necessary
+        if (empty()) {
+            return flds;
+        }
+        std::stringstream ss(data());
+        std::string token;
+        while (std::getline(ss, token, delim)) {
+            if (rep == 1 || !token.empty()) {
+                flds.push_back(token);
+            }
+        }
         return flds;
     }
-    std::stringstream ss(data());
-    std::string token;
-    while (std::getline(ss, token, delim)) {
-        if (rep == 1 || !token.empty()) {
-            flds.push_back(token);
-        }
-    }
-    return flds;
-}
 
-inline std::string& trim(std::string& s)
-{
-    if (s.empty()) {
+    inline std::string& trim(std::string& s)
+    {
+        if (s.empty()) {
+            return s;
+        }
+        s.erase(0, s.find_first_not_of(' '));
+        s.erase(s.find_last_not_of(" ") + 1);
         return s;
     }
-    s.erase(0, s.find_first_not_of(' '));
-    s.erase(s.find_last_not_of(" ") + 1);
-    return s;
-}
 }
 
 struct PlyHeader {
@@ -293,6 +289,7 @@ public:
 
     virtual void applyAttributes(const PlyHeader& header) override
     {
+        attributeSetters.clear();
         attributeSetters.resize(header.attributes.size(), BasePointAttributeSetter::DefaultSetter<PointType>());
         for (int i = 0; i < header.attributes.size(); ++i) {
             auto itr = attributeSetterMap.find(header.attributes[i].name);
@@ -321,6 +318,9 @@ bool PlyReadPoint(std::istream& is, const PlyHeader& header,
 
 template <typename PointType>
 class PlyPointFileStreamReaderIterator;
+
+template <typename PointType>
+std::shared_ptr<PointAttributeSetter<PointType>> make_setter();
 
 struct PlyPointStreamReader {
     PlyPointStreamReader(std::istream& _is)
@@ -355,15 +355,29 @@ struct PlyPointStreamReader {
     }
 
     template <typename PointType>
-    void prepareReadFunction(PointAttributeSetter<PointType>* setter)
+    void prepareReadFunction(std::shared_ptr<PointAttributeSetter<PointType>> setter)
     {
         setter->applyAttributes(head);
         baseSetter = setter;
+        getPointTypeSetters()[typeid(PointType).name()] = setter;
     }
+
+    // if not set custom setter, use default setter
+    template <typename PointType>
+    void preparePointAttribute()
+    {
+        if (getPointTypeSetters().count(typeid(PointType).name()) == 0) {
+            prepareReadFunction(make_setter<PointType>());
+        } else {
+            baseSetter = getPointTypeSetters()[typeid(PointType).name()];
+        }
+    }
+
     template <typename PointType>
     bool readPoint(PointType& pt)
     {
-        return PlyReadPoint(is, head, pt, *static_cast<PointAttributeSetter<PointType>*>(baseSetter));
+        // CHECK(baseSetter.get() != nullptr);
+        return PlyReadPoint(is, head, pt, *static_cast<PointAttributeSetter<PointType>*>(baseSetter.get()));
     }
 
     template <typename PointType>
@@ -374,7 +388,13 @@ struct PlyPointStreamReader {
 
     PlyHeader head;
     std::istream& is;
-    BasePointAttributeSetter* baseSetter;
+    std::shared_ptr<BasePointAttributeSetter> baseSetter;
+
+    static std::unordered_map<std::string, std::shared_ptr<BasePointAttributeSetter>>& getPointTypeSetters()
+    {
+        static std::unordered_map<std::string, std::shared_ptr<BasePointAttributeSetter>> pointTypeSetters;
+        return pointTypeSetters;
+    };
 };
 
 // TODO add stream state
@@ -456,8 +476,8 @@ public:
 template <typename PointType>
 PlyPointFileStreamReaderIterator<PointType> PlyPointStreamReader::begin()
 {
-    // preparePointAttribute<PointType>();
     readHead();
+    preparePointAttribute<PointType>();
     beginReadPoint();
     PlyPointFileStreamReaderIterator<PointType> itr(this, 0, pointSize());
     return itr;
@@ -508,4 +528,78 @@ protected:
     std::ifstream ifs;
 };
 
+template <typename PointType>
+void set_x(PointType& pt, const PlyDataType& data)
+{
+    pt.x = data.floatVal;
+}
+
+template <typename PointType>
+void set_y(PointType& pt, const PlyDataType& data)
+{
+    pt.y = data.floatVal;
+}
+
+template <typename PointType>
+void set_z(PointType& pt, const PlyDataType& data)
+{
+    pt.z = data.floatVal;
+}
+
+template <typename PointType>
+void addXYZSetter(std::shared_ptr<PointAttributeSetter<PointType>> setter)
+{
+    setter->registerAttribute("x", set_x<PointType>);
+    setter->registerAttribute("y", set_y<PointType>);
+    setter->registerAttribute("z", set_z<PointType>);
+};
+
+template <typename PointType>
+std::shared_ptr<PointAttributeSetter<PointType>> make_setter()
+{
+    auto setter = std::make_shared<PointAttributeSetter<PointType>>();
+    addXYZSetter<PointType>(setter);
+    return setter;
+}
+
+template <typename PointType>
+void addIntensitySetter(std::shared_ptr<PointAttributeSetter<PointType>> setter)
+{
+    setter->registerAttribute("intensity", [](PointType& pt, const PlyDataType& data) { pt.intensity = data.floatVal; });
+};
+
+template <typename PointType>
+void addRGBSetter(std::shared_ptr<PointAttributeSetter<PointType>> setter)
+{
+    setter->registerAttribute("r", [](PointType& pt, const PlyDataType& data) { pt.r = data.ucharVal; });
+    setter->registerAttribute("red", [](PointType& pt, const PlyDataType& data) { pt.r = data.ucharVal; });
+    setter->registerAttribute("g", [](PointType& pt, const PlyDataType& data) { pt.g = data.ucharVal; });
+    setter->registerAttribute("green", [](PointType& pt, const PlyDataType& data) { pt.g = data.ucharVal; });
+    setter->registerAttribute("b", [](PointType& pt, const PlyDataType& data) { pt.b = data.ucharVal; });
+    setter->registerAttribute("blue", [](PointType& pt, const PlyDataType& data) { pt.b = data.ucharVal; });
+};
+
+template <typename PointType>
+void addNormalSetter(std::shared_ptr<PointAttributeSetter<PointType>> setter)
+{
+    setter->registerAttribute("nx", [](PointType& pt, const PlyDataType& data) { pt.nx = data.floatVal; });
+    setter->registerAttribute("normal_x", [](PointType& pt, const PlyDataType& data) { pt.nx = data.floatVal; });
+    setter->registerAttribute("ny", [](PointType& pt, const PlyDataType& data) { pt.ny = data.floatVal; });
+    setter->registerAttribute("normal_y", [](PointType& pt, const PlyDataType& data) { pt.ny = data.floatVal; });
+    setter->registerAttribute("nz", [](PointType& pt, const PlyDataType& data) { pt.nz = data.floatVal; });
+    setter->registerAttribute("normal_z", [](PointType& pt, const PlyDataType& data) { pt.nz = data.floatVal; });
+};
+} // plyio
+
+// 特化示例
+// template <>
+// std::shared_ptr<PointAttributeSetter<MyPointType>> make_setter<MyPointType>()
+// {
+//     std::shared_ptr<PointAttributeSetter<MyPointType>> setter = std::make_shared<PointAttributeSetter<MyPointType>>();
+//     addXYZSetter(setter);
+//     addIntensitySetter(setter);
+//     addRGBSetter(setter);
+//     addNormalSetter(setter);
+//     return setter;
+// }
 #endif // PLYCLOUD_IO_PLYCLOUD_READER_HPP
