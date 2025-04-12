@@ -8,7 +8,7 @@ struct MyPoint {
     uint8_t r, g, b;
 };
 
-std::string ply_write_trest()
+std::string ply_write_test(bool binary)
 {
     // Instantiate a point with coordinates (1, 2, 3)
     plyio::PlyPointXYZIRGBN X;
@@ -29,7 +29,7 @@ std::string ply_write_trest()
     plyio::PlyPointStreamWriter<plyio::PlyPointXYZIRGBN> writer(ss);
 
     // Set the output format to ASCII (non-binary)
-    writer.setBinary(false);
+    writer.setBinary(binary);
 
     // Write the header information for the PLY file
     writer.writeHead();
@@ -48,7 +48,42 @@ std::string ply_write_trest()
     return ss.str();
 }
 
+template <>
+std::shared_ptr<plyio::PointAttributeSetter<MyPoint>> plyio::make_setter()
+{
+    auto setter = std::make_shared<plyio::PointAttributeSetter<MyPoint>>();
+    addXYZSetter<MyPoint>(setter);
+    addRGBSetter<MyPoint>(setter);
+    return setter;
+}
+
 int ply_read_test(const std::string& s)
+{
+    std::stringstream ss(s);
+    using namespace plyio;
+    try {
+        plyio::PlyPointStreamReader reader(ss);
+
+        if (!reader.readHead()) {
+            std::cerr << "Failed to read PLY header." << std::endl;
+            return 1;
+        }
+
+        reader.printHeader();
+        reader.beginReadPoint<MyPoint>();
+
+        for (auto it = reader.begin<MyPoint>(); it != reader.end<MyPoint>(); ++it) {
+            const MyPoint& pt = *it;
+            std::cout << "Point: (" << pt.x << ", " << pt.y << ", " << pt.z << "), Color: (" << static_cast<int>(pt.r) << ", " << static_cast<int>(pt.g) << ", " << static_cast<int>(pt.b) << ")" << std::endl;
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    }
+    return 0;
+}
+
+int ply_read_test2(const std::string& s)
 {
     std::stringstream ss(s);
     using namespace plyio;
@@ -99,6 +134,12 @@ int ply_read_test(const std::string& s)
 }
 int main()
 {
-    std::string s = ply_write_trest();
-    return ply_read_test(s);
+    std::string assciitex = ply_write_test(false);
+    std::string binarytex = ply_write_test(true);
+    ply_read_test(assciitex);
+    ply_read_test2(assciitex);
+
+    ply_read_test(binarytex);
+    ply_read_test2(binarytex);
+    return 0;
 }

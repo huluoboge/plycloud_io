@@ -39,12 +39,11 @@ else()
     message(FATAL_ERROR "The compiler does NOT support C++11. Please use a compiler that supports C++11.")
 endif()
 
-find_package(Boost REQUIRED)
+find_package(Boost)
 
 if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
-    # target_link_libraries(YourExecutable ${Boost_LIBRARIES})
-else()
-    message(FATAL_ERROR "Could not find Boost libraries!")
+    add_definitions(-DUSE_BOOST_PP_CAT)
 endif()
+
 add_subdirectory(src)

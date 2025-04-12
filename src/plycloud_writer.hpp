@@ -2,9 +2,11 @@
 #ifndef PLYCLOUD_IO_PLYCLOUD_WRITER_HPP
 #define PLYCLOUD_IO_PLYCLOUD_WRITER_HPP
 
+#if USE_BOOST_PP_CAT
 #include <boost/preprocessor/cat.hpp>
-// #define BOOST_PP_CAT(a, b) BOOST_PP_CAT_I(a, b)
-// #define BOOST_PP_CAT_I(a, b) a##b
+#else
+#include "boost_cat.hpp"
+#endif
 
 #include <cstdint>
 #include <fstream>

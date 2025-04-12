@@ -349,6 +349,13 @@ struct PlyPointStreamReader {
         is.seekg(head.bodyPosition, is.beg);
     }
 
+    template <typename PointType>
+    void beginReadPoint()
+    {
+        beginReadPoint();
+        preparePointAttribute<PointType>();
+    }
+    
     size_t pointSize() const
     {
         return head.count;
