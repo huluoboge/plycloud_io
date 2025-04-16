@@ -26,15 +26,55 @@ enum PlyTypeEnum {
     type_float = 7,
     type_double = 8
 };
-union PlyDataType {
-    int8_t charVal;
-    uint8_t ucharVal;
-    int16_t shortVal;
-    uint16_t ushortVal;
-    int32_t intVal;
-    uint32_t uintVal;
-    float floatVal;
-    double doubleVal;
+
+struct PlyDataType {
+    struct {
+        union {
+            int8_t charVal;
+            uint8_t ucharVal;
+            int16_t shortVal;
+            uint16_t ushortVal;
+            int32_t intVal;
+            uint32_t uintVal;
+            float floatVal;
+            double doubleVal;
+        };
+        uint64_t data;
+    };
+    int type;
+
+    template <typename T>
+    T as() const
+    {
+        switch (type) {
+        case type_char:
+            return T(charVal);
+            break;
+        case type_uchar:
+            return T(ucharVal);
+            break;
+        case type_short:
+            return T(shortVal);
+            break;
+        case type_ushort:
+            return T(ushortVal);
+            break;
+        case type_int:
+            return T(intVal);
+            break;
+        case type_uint:
+            return T(uintVal);
+            break;
+        case type_float:
+            return T(floatVal);
+            break;
+        case type_double:
+            return T(doubleVal);
+            break;
+        default:
+            return T(0);
+        }
+    }
 };
 
 namespace inner {
@@ -109,19 +149,9 @@ struct PlyHeader {
             }
             return true;
         }
-        // bool parseName(PlyHeader& header)
-        // {
-        //     // nameFlags = name_unknown;
-        //     // auto itr = header.nameMap.find(name);
-        //     // if (itr != header.nameMap.end()) {
-        //     //     nameFlags = itr->second;
-        //     //     return true;
-        //     // } else {
-        //     //     return false;
-        //     // }
-        // }
         bool read(std::istream& is, bool isBin, PlyDataType& data) const
         {
+            data.type = typeFlags;
             if (isBin) {
                 if (typeFlags == type_char) {
                     is.read((char*)&data.charVal, 1);
@@ -355,7 +385,7 @@ struct PlyPointStreamReader {
         beginReadPoint();
         preparePointAttribute<PointType>();
     }
-    
+
     size_t pointSize() const
     {
         return head.count;
@@ -544,19 +574,19 @@ protected:
 template <typename PointType>
 void set_x(PointType& pt, const PlyDataType& data)
 {
-    pt.x = data.floatVal;
+    pt.x = data.as<float>();
 }
 
 template <typename PointType>
 void set_y(PointType& pt, const PlyDataType& data)
 {
-    pt.y = data.floatVal;
+    pt.y = data.as<float>();
 }
 
 template <typename PointType>
 void set_z(PointType& pt, const PlyDataType& data)
 {
-    pt.z = data.floatVal;
+    pt.z = data.as<float>();
 }
 
 template <typename PointType>
@@ -578,29 +608,55 @@ std::shared_ptr<PointAttributeSetter<PointType>> make_setter()
 template <typename PointType>
 void addIntensitySetter(std::shared_ptr<PointAttributeSetter<PointType>> setter)
 {
-    setter->registerAttribute("intensity", [](PointType& pt, const PlyDataType& data) { pt.intensity = data.floatVal; });
+    setter->registerAttribute("intensity", [](PointType& pt, const PlyDataType& data) {
+        pt.intensity = data.as<float>();
+    });
 };
 
 template <typename PointType>
 void addRGBSetter(std::shared_ptr<PointAttributeSetter<PointType>> setter)
 {
-    setter->registerAttribute("r", [](PointType& pt, const PlyDataType& data) { pt.r = data.ucharVal; });
-    setter->registerAttribute("red", [](PointType& pt, const PlyDataType& data) { pt.r = data.ucharVal; });
-    setter->registerAttribute("g", [](PointType& pt, const PlyDataType& data) { pt.g = data.ucharVal; });
-    setter->registerAttribute("green", [](PointType& pt, const PlyDataType& data) { pt.g = data.ucharVal; });
-    setter->registerAttribute("b", [](PointType& pt, const PlyDataType& data) { pt.b = data.ucharVal; });
-    setter->registerAttribute("blue", [](PointType& pt, const PlyDataType& data) { pt.b = data.ucharVal; });
+    setter->registerAttribute("r", [](PointType& pt, const PlyDataType& data) {
+        pt.r = data.as<uint8_t>();
+    });
+    setter->registerAttribute("red", [](PointType& pt, const PlyDataType& data) {
+        pt.r = data.as<uint8_t>();
+    });
+    setter->registerAttribute("g", [](PointType& pt, const PlyDataType& data) {
+        pt.g = data.as<uint8_t>();
+    });
+    setter->registerAttribute("green", [](PointType& pt, const PlyDataType& data) {
+        pt.g = data.as<uint8_t>();
+    });
+    setter->registerAttribute("b", [](PointType& pt, const PlyDataType& data) {
+        pt.b = data.as<uint8_t>();
+    });
+    setter->registerAttribute("blue", [](PointType& pt, const PlyDataType& data) {
+        pt.b = data.as<uint8_t>();
+    });
 };
 
 template <typename PointType>
 void addNormalSetter(std::shared_ptr<PointAttributeSetter<PointType>> setter)
 {
-    setter->registerAttribute("nx", [](PointType& pt, const PlyDataType& data) { pt.nx = data.floatVal; });
-    setter->registerAttribute("normal_x", [](PointType& pt, const PlyDataType& data) { pt.nx = data.floatVal; });
-    setter->registerAttribute("ny", [](PointType& pt, const PlyDataType& data) { pt.ny = data.floatVal; });
-    setter->registerAttribute("normal_y", [](PointType& pt, const PlyDataType& data) { pt.ny = data.floatVal; });
-    setter->registerAttribute("nz", [](PointType& pt, const PlyDataType& data) { pt.nz = data.floatVal; });
-    setter->registerAttribute("normal_z", [](PointType& pt, const PlyDataType& data) { pt.nz = data.floatVal; });
+    setter->registerAttribute("nx", [](PointType& pt, const PlyDataType& data) {
+        pt.nx = data.as<float>();
+    });
+    setter->registerAttribute("normal_x", [](PointType& pt, const PlyDataType& data) {
+        pt.nx = data.as<float>();
+    });
+    setter->registerAttribute("ny", [](PointType& pt, const PlyDataType& data) {
+        pt.ny = data.as<float>();
+    });
+    setter->registerAttribute("normal_y", [](PointType& pt, const PlyDataType& data) {
+        pt.ny = data.as<float>();
+    });
+    setter->registerAttribute("nz", [](PointType& pt, const PlyDataType& data) {
+        pt.nz = data.as<float>();
+    });
+    setter->registerAttribute("normal_z", [](PointType& pt, const PlyDataType& data) {
+        pt.nz = data.as<float>();
+    });
 };
 } // plyio
 

@@ -7,6 +7,29 @@ struct MyPoint {
     float x, y, z;
     uint8_t r, g, b;
 };
+struct MyPoint2 {
+    float x, y, z;
+    float r, g, b;
+};
+
+template <>
+std::shared_ptr<plyio::PointAttributeSetter<MyPoint>> plyio::make_setter()
+{
+    auto setter = std::make_shared<plyio::PointAttributeSetter<MyPoint>>();
+    addXYZSetter<MyPoint>(setter);
+    addRGBSetter<MyPoint>(setter);
+    return setter;
+}
+
+template <>
+std::shared_ptr<plyio::PointAttributeSetter<MyPoint2>> plyio::make_setter()
+{
+    auto setter = std::make_shared<plyio::PointAttributeSetter<MyPoint2>>();
+    addXYZSetter<MyPoint2>(setter);
+    addRGBSetter<MyPoint2>(setter);
+    return setter;
+}
+REGISTER_PLY_WRITE_POINT(MyPoint2, (float, x, x)(float, y, y)(float, z, z)(float, red, r)(float, green, g)(float, blue, b))
 
 std::string ply_write_test(bool binary)
 {
@@ -48,13 +71,39 @@ std::string ply_write_test(bool binary)
     return ss.str();
 }
 
-template <>
-std::shared_ptr<plyio::PointAttributeSetter<MyPoint>> plyio::make_setter()
+std::string ply_write_test2(bool binary)
 {
-    auto setter = std::make_shared<plyio::PointAttributeSetter<MyPoint>>();
-    addXYZSetter<MyPoint>(setter);
-    addRGBSetter<MyPoint>(setter);
-    return setter;
+    MyPoint2 X;
+    X.x = 1;
+    X.y = 2;
+    X.z = 3;
+    X.r = 155;
+    X.g = 0;
+    X.b = 66;
+    // Create a stringstream to hold the output
+    std::stringstream ss;
+
+    // Initialize a PlyPointStreamWriter to write points into the stringstream
+    plyio::PlyPointStreamWriter<MyPoint2> writer(ss);
+
+    // Set the output format to ASCII (non-binary)
+    writer.setBinary(binary);
+
+    // Write the header information for the PLY file
+    writer.writeHead();
+
+    // Write four identical points to the stream
+    writer.writePoint(X);
+    writer.writePoint(X);
+    writer.writePoint(X);
+    writer.writePoint(X);
+
+    // Update the header to reflect the actual number of points written
+    writer.updateHead();
+
+    // Output the stringstream content to console
+    std::cout << ss.str() << std::endl;
+    return ss.str();
 }
 
 int ply_read_test(const std::string& s)
@@ -102,22 +151,22 @@ int ply_read_test2(const std::string& s)
         setter->registerAttribute("y", set_y<MyPoint>);
         setter->registerAttribute("z", set_z<MyPoint>);
         setter->registerAttribute("red", [](MyPoint& pt, const PlyDataType& data) {
-            pt.r = data.ucharVal;
+            pt.r = data.as<uint8_t>();
         });
         setter->registerAttribute("r", [](MyPoint& pt, const PlyDataType& data) {
-            pt.r = data.ucharVal;
+            pt.r = data.as<uint8_t>();
         });
         setter->registerAttribute("green", [](MyPoint& pt, const PlyDataType& data) {
-            pt.g = data.ucharVal;
+            pt.g = data.as<uint8_t>();
         });
         setter->registerAttribute("g", [](MyPoint& pt, const PlyDataType& data) {
-            pt.g = data.ucharVal;
+            pt.g = data.as<uint8_t>();
         });
         setter->registerAttribute("blue", [](MyPoint& pt, const PlyDataType& data) {
-            pt.b = data.ucharVal;
+            pt.b = data.as<uint8_t>();
         });
         setter->registerAttribute("b", [](MyPoint& pt, const PlyDataType& data) {
-            pt.b = data.ucharVal;
+            pt.b = data.as<uint8_t>();
         });
 
         reader.prepareReadFunction(setter);
@@ -141,5 +190,16 @@ int main()
 
     ply_read_test(binarytex);
     ply_read_test2(binarytex);
+
+    /////save float rgb, and readout uchar
+    std::cout << "========================" << std::endl;
+    std::string asstex2 = ply_write_test2(false);
+    std::string bintex2 = ply_write_test2(true);
+
+    ply_read_test(asstex2);
+    ply_read_test2(asstex2);
+
+    ply_read_test(bintex2);
+    ply_read_test2(bintex2);
     return 0;
 }

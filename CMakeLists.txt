@@ -39,7 +39,7 @@ else()
     message(FATAL_ERROR "The compiler does NOT support C++11. Please use a compiler that supports C++11.")
 endif()
 
-find_package(Boost)
+# find_package(Boost)
 
 if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
