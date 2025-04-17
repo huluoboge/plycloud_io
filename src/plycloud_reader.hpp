@@ -572,6 +572,15 @@ protected:
 };
 
 template <typename PointType>
+std::shared_ptr<PointAttributeSetter<PointType>> make_setter();
+
+// {
+//     auto setter = std::make_shared<PointAttributeSetter<PointType>>();
+//     addXYZSetter<PointType>(setter);
+//     return setter;
+// }
+
+template <typename PointType>
 void set_x(PointType& pt, const PlyDataType& data)
 {
     pt.x = data.as<float>();
@@ -596,14 +605,6 @@ void addXYZSetter(std::shared_ptr<PointAttributeSetter<PointType>> setter)
     setter->registerAttribute("y", set_y<PointType>);
     setter->registerAttribute("z", set_z<PointType>);
 };
-
-template <typename PointType>
-std::shared_ptr<PointAttributeSetter<PointType>> make_setter()
-{
-    auto setter = std::make_shared<PointAttributeSetter<PointType>>();
-    addXYZSetter<PointType>(setter);
-    return setter;
-}
 
 template <typename PointType>
 void addIntensitySetter(std::shared_ptr<PointAttributeSetter<PointType>> setter)
@@ -657,8 +658,42 @@ void addNormalSetter(std::shared_ptr<PointAttributeSetter<PointType>> setter)
     setter->registerAttribute("normal_z", [](PointType& pt, const PlyDataType& data) {
         pt.nz = data.as<float>();
     });
-};
+}
+
 } // plyio
+
+#define PLY_READ_PROPERTY(TYPE, ATTRIBUTE_NAME, VALUE)                                      \
+    setter->registerAttribute(#ATTRIBUTE_NAME, [](PointType& pt, const PlyDataType& data) { \
+        pt.VALUE = data.as<TYPE>();                                                       \
+    });
+
+#define REGISTER_POINT_READ_XX(type, name, val) \
+    PLY_READ_PROPERTY(type, name, val)          \
+    REGISTER_POINT_READ_YY
+
+#define REGISTER_POINT_READ_YY(type, name, val) \
+    PLY_READ_PROPERTY(type, name, val)          \
+    REGISTER_POINT_READ_XX
+
+#define REGISTER_POINT_READ_XX0
+#define REGISTER_POINT_READ_YY0
+
+#define PLY_REGIST_READ_POINT(PointT, ...)                                            \
+    template <>                                                                       \
+    std::shared_ptr<plyio::PointAttributeSetter<PointT>> plyio::make_setter<PointT>() \
+    {                                                                                 \
+        using PointType = PointT;                                                     \
+        auto setter = std::make_shared<plyio::PointAttributeSetter<PointT>>();        \
+        __VA_ARGS__                                                                   \
+        return setter;                                                                \
+    }
+
+#define REGISTER_READ_POINT_STRUCT(name, seq) \
+    PLY_REGIST_READ_POINT(name,               \
+        BOOST_PP_CAT(REGISTER_POINT_READ_XX seq, 0))
+
+#define REGISTER_PLY_READ_POINT(name, seq) \
+    REGISTER_READ_POINT_STRUCT(name, seq)
 
 // 特化示例
 // template <>

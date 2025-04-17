@@ -12,6 +12,7 @@ struct MyPoint2 {
     float r, g, b;
 };
 
+// custom make_setter
 template <>
 std::shared_ptr<plyio::PointAttributeSetter<MyPoint>> plyio::make_setter()
 {
@@ -30,6 +31,16 @@ std::shared_ptr<plyio::PointAttributeSetter<MyPoint2>> plyio::make_setter()
     return setter;
 }
 REGISTER_PLY_WRITE_POINT(MyPoint2, (float, x, x)(float, y, y)(float, z, z)(float, red, r)(float, green, g)(float, blue, b))
+
+struct MyPoint3 {
+    float x, y, z;
+    float red, green, blue;
+};
+
+// regist reader function(auto generate make_setter function) .
+// different to write point, you can regist reader function to map one ply attribute to different function
+//
+REGISTER_PLY_READ_POINT(MyPoint3, (float, x, x)(float, y, y)(float, z, z)(float, red, red)(float, green, green)(float, blue, blue)(float, r, red)(float, g, green)(float, b, blue))
 
 std::string ply_write_test(bool binary)
 {
@@ -181,6 +192,35 @@ int ply_read_test2(const std::string& s)
     }
     return 0;
 }
+
+int ply_read_test3(const std::string& s)
+{
+    std::cout<<"TEST READ POINT3"<<std::endl;
+    std::stringstream ss(s);
+    using namespace plyio;
+    try {
+        plyio::PlyPointStreamReader reader(ss);
+
+        if (!reader.readHead()) {
+            std::cerr << "Failed to read PLY header." << std::endl;
+            return 1;
+        }
+
+        reader.printHeader();
+
+        reader.beginReadPoint<MyPoint3>();
+        for (int i = 0; i < reader.pointSize(); ++i) {
+            MyPoint3 pt;
+            reader.readPoint(pt);
+            std::cout << "Point: (" << pt.x << ", " << pt.y << ", " << pt.z << "), Color: ("
+                      << static_cast<int>(pt.red) << ", " << static_cast<int>(pt.green) << ", " << static_cast<int>(pt.blue) << ")" << std::endl;
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    }
+    return 0;
+}
 int main()
 {
     std::string assciitex = ply_write_test(false);
@@ -201,5 +241,8 @@ int main()
 
     ply_read_test(bintex2);
     ply_read_test2(bintex2);
+
+    ply_read_test3(binarytex);
+    ply_read_test3(bintex2);
     return 0;
 }

@@ -66,6 +66,7 @@ struct PlyPointXYZIRGBN : public PlyPointXYZ {
 
 }
 
+// regist write point
 REGISTER_PLY_WRITE_POINT(plyio::PlyPointXYZ, (float, x, x)(float, y, y)(float, z, z))
 REGISTER_PLY_WRITE_POINT(plyio::PlyPointXYZI, (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity))
 REGISTER_PLY_WRITE_POINT(plyio::PlyPointXYZRGB,
@@ -84,7 +85,50 @@ REGISTER_PLY_WRITE_POINT(plyio::PlyPointXYZRGBN,
 REGISTER_PLY_WRITE_POINT(plyio::PlyPointXYZIRGBN,
     (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)(float, nx, nx)(float, ny, ny)(float, nz, nz)(uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b))
 
-// MAKE_SETTER(plyio::PlyPointXYZIRGBN, addNormalSetter(setter); addNormalSetter(setter);)
-// custom your point type
+/*
+"Reading a file is different from writing.
+To accommodate different attribute names that may appear in a PLY file, \
+for example, normal_x might also be called nx.
+ Therefore, multiple functions can be registered for a single attribute name,
+ allowing for the reading of various cases."
+*/
+
+REGISTER_PLY_READ_POINT(plyio::PlyPointXYZ, (float, x, x)(float, y, y)(float, z, z))
+REGISTER_PLY_READ_POINT(plyio::PlyPointXYZI, (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity))
+REGISTER_PLY_READ_POINT(plyio::PlyPointXYZRGB,
+    (float, x, x)(float, y, y)(float, z, z)(uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b)(uint8_t, red, r)(uint8_t, green, g)(uint8_t, blue, b))
+REGISTER_PLY_READ_POINT(plyio::PlyPointXYZN,
+    (float, x, x)(float, y, y)(float, z, z)
+    (float, nx, nx)(float, ny, ny)(float, nz, nz) 
+    (float, normal_x, nx)(float, normal_y, ny)(float, normal_z, nz)
+    )
+
+REGISTER_PLY_READ_POINT(plyio::PlyPointXYZIRGB,
+    (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)
+    (uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b)
+    (uint8_t, red, r)(uint8_t, green, g)(uint8_t, blue, b)
+)
+
+REGISTER_PLY_READ_POINT(plyio::PlyPointXYZIN,
+    (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)
+    (float, nx, nx)(float, ny, ny)(float, nz, nz)
+    (float, normal_x, nx)(float, normal_y, ny)(float, normal_z, nz)
+)
+
+REGISTER_PLY_READ_POINT(plyio::PlyPointXYZRGBN,
+    (float, x, x)(float, y, y)(float, z, z)
+    (float, nx, nx)(float, ny, ny)(float, nz, nz)
+    (float, normal_x, nx)(float, normal_y, ny)(float, normal_z, nz)
+    (uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b)
+    (uint8_t, red, r)(uint8_t, green, g)(uint8_t, blue, b)
+)
+
+REGISTER_PLY_READ_POINT(plyio::PlyPointXYZIRGBN,
+    (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)
+    (float, nx, nx)(float, ny, ny)(float, nz, nz)
+    (float, normal_x, nx)(float, normal_y, ny)(float, normal_z, nz)
+    (uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b)
+    (uint8_t, red, r)(uint8_t, green, g)(uint8_t, blue, b)
+)
 
 #endif // PLYCLOUD_IO_PLYCLOUD_POINT_HPP
