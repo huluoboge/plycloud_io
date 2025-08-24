@@ -574,12 +574,6 @@ protected:
 template <typename PointType>
 std::shared_ptr<PointAttributeSetter<PointType>> make_setter();
 
-// {
-//     auto setter = std::make_shared<PointAttributeSetter<PointType>>();
-//     addXYZSetter<PointType>(setter);
-//     return setter;
-// }
-
 template <typename PointType>
 void set_x(PointType& pt, const PlyDataType& data)
 {
@@ -680,7 +674,7 @@ void addNormalSetter(std::shared_ptr<PointAttributeSetter<PointType>> setter)
 
 #define PLY_REGIST_READ_POINT(PointT, ...)                                            \
     template <>                                                                       \
-    std::shared_ptr<plyio::PointAttributeSetter<PointT>> plyio::make_setter<PointT>() \
+    inline std::shared_ptr<plyio::PointAttributeSetter<PointT>> plyio::make_setter<PointT>() \
     {                                                                                 \
         using PointType = PointT;                                                     \
         auto setter = std::make_shared<plyio::PointAttributeSetter<PointT>>();        \

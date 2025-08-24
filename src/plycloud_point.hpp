@@ -64,6 +64,28 @@ struct PlyPointXYZIRGBN : public PlyPointXYZ {
     uint8_t r = 0, g = 0, b = 0;
 };
 
+struct PlyPointXYZNV : public PlyPointXYZN{
+    int32_t view_id = 0;
+};
+
+struct PlyPointXYZNVRGB: PlyPointXYZNV{
+    uint8_t r=0, g=0, b=0;
+};
+
+struct PlyPointXYZNVEIT : public PlyPointXYZNV{
+    float emit_x=0, emit_y=0, emit_z=0;
+    float intensity = 0;
+    float timestamp = 0;
+};
+
+struct PlyPointXYZNVEITRGB : public PlyPointXYZNVEIT{
+    uint8_t r=0, g=0, b=0;
+};
+
+struct PlyPointXYZNVEITRGBC : public PlyPointXYZNVEITRGB{
+    uint8_t classification; // classification
+};
+
 }
 
 // regist write point
@@ -84,6 +106,49 @@ REGISTER_PLY_WRITE_POINT(plyio::PlyPointXYZRGBN,
 
 REGISTER_PLY_WRITE_POINT(plyio::PlyPointXYZIRGBN,
     (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)(float, nx, nx)(float, ny, ny)(float, nz, nz)(uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b))
+
+REGISTER_PLY_WRITE_POINT(plyio::PlyPointXYZNV,
+    (float, x, x)(float, y, y)(float, z, z)
+    (float, nx, nx)(float, ny, ny)(float, nz, nz)
+    (int32_t, view_id, view_id)
+)
+
+REGISTER_PLY_WRITE_POINT(plyio::PlyPointXYZNVRGB,
+    (float, x, x)(float, y, y)(float, z, z)
+    (float, nx, nx)(float, ny, ny)(float, nz, nz)
+    (int32_t, view_id, view_id)
+    (uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b)
+)
+
+REGISTER_PLY_WRITE_POINT(plyio::PlyPointXYZNVEIT,
+    (float, x, x)(float, y, y)(float, z, z)
+    (float, nx, nx)(float, ny, ny)(float, nz, nz)
+    (int32_t, view_id, view_id)
+    (float, emit_x, emit_x)(float, emit_y, emit_y)(float, emit_z, emit_z)
+    (float, intensity, intensity)
+    (float, timestamp, timestamp)
+)
+
+REGISTER_PLY_WRITE_POINT(plyio::PlyPointXYZNVEITRGB,
+    (float, x, x)(float, y, y)(float, z, z)
+    (float, nx, nx)(float, ny, ny)(float, nz, nz)
+    (int32_t, view_id, view_id)
+    (float, emit_x, emit_x)(float, emit_y, emit_y)(float, emit_z, emit_z)
+    (float, intensity, intensity)
+    (float, timestamp, timestamp)
+    (uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b)
+)
+
+REGISTER_PLY_WRITE_POINT(plyio::PlyPointXYZNVEITRGBC,
+    (float, x, x)(float, y, y)(float, z, z)
+    (float, nx, nx)(float, ny, ny)(float, nz, nz)
+    (int32_t, view_id, view_id)
+    (float, emit_x, emit_x)(float, emit_y, emit_y)(float, emit_z, emit_z)
+    (float, intensity, intensity)
+    (float, timestamp, timestamp)
+    (uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b)
+    (uint8_t, classification, classification)
+)
 
 /*
 "Reading a file is different from writing.
@@ -129,6 +194,50 @@ REGISTER_PLY_READ_POINT(plyio::PlyPointXYZIRGBN,
     (float, normal_x, nx)(float, normal_y, ny)(float, normal_z, nz)
     (uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b)
     (uint8_t, red, r)(uint8_t, green, g)(uint8_t, blue, b)
+)
+
+REGISTER_PLY_READ_POINT(plyio::PlyPointXYZNV,
+    (float, x, x)(float, y, y)(float, z, z)
+    (float, nx, nx)(float, ny, ny)(float, nz, nz)
+    (int32_t, view_id, view_id)
+)
+
+REGISTER_PLY_READ_POINT(plyio::PlyPointXYZNVRGB,
+    (float, x, x)(float, y, y)(float, z, z)
+    (float, nx, nx)(float, ny, ny)(float, nz, nz)
+    (int32_t, view_id, view_id)
+    (uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b)
+)
+
+REGISTER_PLY_READ_POINT(plyio::PlyPointXYZNVEIT,
+    (float, x, x)(float, y, y)(float, z, z)
+    (float, nx, nx)(float, ny, ny)(float, nz, nz)
+    (int32_t, view_id, view_id)
+    (float, emit_x, emit_x)(float, emit_y, emit_y)(float, emit_z, emit_z)
+    (float, intensity, intensity)
+    (float, timestamp, timestamp)
+)
+
+REGISTER_PLY_READ_POINT(plyio::PlyPointXYZNVEITRGB,
+    (float, x, x)(float, y, y)(float, z, z)
+    (float, nx, nx)(float, ny, ny)(float, nz, nz)
+    (int32_t, view_id, view_id)
+    (float, emit_x, emit_x)(float, emit_y, emit_y)(float, emit_z, emit_z)
+    (float, intensity, intensity)
+    (float, timestamp, timestamp)
+    (uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b)
+)
+
+
+REGISTER_PLY_READ_POINT(plyio::PlyPointXYZNVEITRGBC,
+    (float, x, x)(float, y, y)(float, z, z)
+    (float, nx, nx)(float, ny, ny)(float, nz, nz)
+    (int32_t, view_id, view_id)
+    (float, emit_x, emit_x)(float, emit_y, emit_y)(float, emit_z, emit_z)
+    (float, intensity, intensity)
+    (float, timestamp, timestamp)
+    (uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b)
+    (uint8_t, classification, classification)
 )
 
 #endif // PLYCLOUD_IO_PLYCLOUD_POINT_HPP
