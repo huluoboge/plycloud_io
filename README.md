@@ -2,61 +2,174 @@
   <b>English</b> | <a href="./README-zh.md">中文</a>
 </div>
 
-# PlyCloud IO Library Readme
+# PlyCloud IO Library
 
 ## Overview
 
-The PlyCloud IO library furnishes a C++ template-based framework for exporting point cloud data to PLY files, compatible with both ASCII and binary formats. It encompasses functionalities to delineate point types replete with diverse attributes (e.g., position, color, normal), spontaneously generate PLY headers, and transmit point datasets to output streams.
+PlyCloud IO is a C++ template-based library for reading and writing point cloud data in PLY format. It supports both binary and ASCII formats, provides flexible attribute mapping, and automatically handles PLY header generation and parsing. The library is designed for ease of use with macro-based registration systems and customizable property mapping.
 
 ## Key Features
 
-- **Template Specialization**: Leverages C++ templates to autonomously generate code tailored for inscribing varied property types into PLY files.
-- **Flexible Point Types**: Backs the definition of bespoke point structures imbued with properties akin to `float`, `double`, `int8_t`, etc., and enrolls them for automated management in the course of PLY file genesis.
-- **Macro-Based Registration**: Proffers macros (`REGISTER_PLY_WRITE_POINT`) to streamline the enrollment of nascent point types alongside their attributes.
-- **Stream Writing**: Employs `PlyPointStreamWriter` and `PlyPointFileStreamWriter` classes to expedite the transcription of point clouds to either conventional or file-based streams efficiently.
-- **Binary & ASCII Support**: Facilitates the election between binary (streamlined for compactness and velocity) and ASCII (human-legible) formats for PLY yield.
-- **Header Management**: Dynamically curates the PLY header segment, refreshing it in consonance with point inscription, thereby ascertaining the precise enumeration of vertices is chronicled.
+- **Complete PLY Support**: Read and write PLY files in both binary (compact and fast) and ASCII (human-readable) formats
+- **Template-Based Architecture**: Leverages C++ templates for automatic code generation tailored to different point types
+- **Flexible Point Types**: Support custom point structures with various property types (float, double, int8_t, uint8_t, etc.)
+- **Attribute Mapping**: Map multiple file attributes to a single object property (e.g., "red" and "r" both map to point.red)
+- **Macro-Based Registration**: Streamline point type registration with `REGISTER_PLY_WRITE_POINT` and `REGISTER_PLY_READ_POINT` macros
+- **Automatic Header Management**: Dynamically generates and updates PLY headers with accurate vertex counts
+- **Custom Callback Support**: Register custom read functions for advanced attribute processing
+- **Stream-Based I/O**: Use `PlyPointStreamWriter` and `PlyPointStreamReader` for flexible stream operations
 
 ## Usage
 
-### Define Your Point Type
-Craft a structure inheriting from `PlyPointXYZ` (or explicates properties outright) encompassing the yearned fields (e.g., position, color, intensity, normals).
+### 1. Define Your Point Type
 
-### Register Point Type
-Employ the dispensed macros to enroll your point prototype along with its characteristics. A model:
+Create a structure with the desired fields (position, color, intensity, normals, etc.):
+
 ```cpp
-struct MyPointType {
+struct MyPoint {
     float x, y, z;
-    uint8_t r, g, b;
+    float red, green, blue;
 };
-REGISTER_PLY_WRITE_POINT(MyPointType, (float, x, x)(float, y, y)(float, z, z)(uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b))
-
 ```
-## Write to Stream
-Instantiate a `PlyPointFileStreamWriter` or `PlyPointStreamWriter`, utilizing your point archetype, and commence penning points to the conduit.
 
-### Macros
-- `REGISTER_PLY_WRITE_POINT`: Registers a point prototype inclusive of its attributes for PLY documentation.
-- `PLY_REGIST_WRITE_HEAD` and `PLY_REGIST_WRITE_POINT`: Intrinsic macros for enrolling header and point inscription rationale.
-- `PLY_WRITE_PROPERTY` and `PLY_WRITER_POINT`: Auxiliary macros facilitating property delineations and point inscriptions individually.
+### 2. Register Point Types for Reading and Writing
 
-### Classes
-- `PlyPropertyTraits`: A template class for scripting property categories to an emission conduit.
-- `PlyWriteHeadTraits` and `PlyWritePointTraits`: Templates delineating the methodology of scripting the PLY header and discrete points of a specified category.
-- `PlyPointStreamWriter`: Scripts points to any output conduit.
-- `PlyPointFileStreamWriter`: A specialized scribe for file conduits, augmented with supplementary file governance capabilities.
+Use the provided macros to register your point type with its attributes:
 
-### Dependencies
-Requires Boost Preprocessor for macro processing.
+```cpp
+// Register for writing
+REGISTER_PLY_WRITE_POINT(MyPoint, 
+    (float, x, x)
+    (float, y, y) 
+    (float, z, z)
+    (float, red, red)
+    (float, green, green) 
+    (float, blue, blue)
+)
+
+// Register for reading with attribute mapping
+REGISTER_PLY_READ_POINT(MyPoint,
+    (float, x, x)
+    (float, y, y)
+    (float, z, z)
+    (float, red, red)    // Maps "red" attribute to point.red
+    (float, green, green) // Maps "green" attribute to point.green  
+    (float, blue, blue)   // Maps "blue" attribute to point.blue
+    (float, r, red)       // Also maps "r" attribute to point.red
+    (float, g, green)     // Also maps "g" attribute to point.green
+    (float, b, blue)      // Also maps "b" attribute to point.blue
+)
+```
+
+### 3. Write Points to Stream
+
+```cpp
+#include "plycloud_writer.hpp"
+
+MyPoint point;
+point.x = 1.0f; point.y = 2.0f; point.z = 3.0f;
+point.red = 255.0f; point.green = 128.0f; point.blue = 64.0f;
+
+std::stringstream ss;
+plyio::PlyPointStreamWriter<MyPoint> writer(ss);
+writer.setBinary(true); // Use binary format
+writer.writeHead();
+writer.writePoint(point);
+writer.updateHead(); // Update header with actual point count
+```
+
+### 4. Read Points from Stream
+
+```cpp
+#include "plycloud_reader.hpp"
+
+std::stringstream ss(plyData);
+plyio::PlyPointStreamReader reader(ss);
+
+if (reader.readHead()) {
+    reader.printHeader();
+    reader.beginReadPoint<MyPoint>();
+    
+    for (auto it = reader.begin<MyPoint>(); it != reader.end<MyPoint>(); ++it) {
+        const MyPoint& pt = *it;
+        std::cout << "Point: (" << pt.x << ", " << pt.y << ", " << pt.z 
+                  << "), Color: (" << pt.red << ", " << pt.green << ", " << pt.blue << ")" << std::endl;
+    }
+}
+```
+
+## Advanced Usage: Custom Attribute Mapping
+
+For more complex scenarios, you can use custom attribute setters:
+
+```cpp
+std::shared_ptr<plyio::PointAttributeSetter<MyPoint>> setter = 
+    std::make_shared<plyio::PointAttributeSetter<MyPoint>>();
+
+// Register custom attribute handlers
+setter->registerAttribute("red", [](MyPoint& pt, const plyio::PlyDataType& data) {
+    pt.red = data.as<uint8_t>(); // Convert from uint8_t to float
+});
+setter->registerAttribute("r", [](MyPoint& pt, const plyio::PlyDataType& data) {
+    pt.red = data.as<uint8_t>();
+});
+// ... register other attributes
+
+reader.prepareReadFunction(setter);
+```
+
+## Predefined Point Types
+
+The library provides several commonly used point types in `plycloud_point.hpp`:
+
+- `PlyPointXYZ`: Basic 3D coordinates
+- `PlyPointXYZRGB`: 3D coordinates with RGB color
+- `PlyPointXYZIRGB`: 3D coordinates with intensity and RGB color  
+- `PlyPointXYZN`: 3D coordinates with normals
+- `PlyPointXYZIRGBN`: Complete point with coordinates, intensity, color, and normals
+
+## Dependencies
+
+- **C++11** or later
+- **Boost Preprocessor** (for macro processing) - optional but recommended
 
 ## Getting Started
-Incorporate `PLYCLOUD_IO_HPP` into your project and adhere to the directives outlined in the Usage section to embark on documenting point clouds as PLY files.
 
-## Customization
-The library is architectured for facile extension to accommodate custom point prototypes and supplementary attribute administration. Simply delineate your proprietary point structures and harness the registration macros accordingly.
+1. Include the library headers in your project:
+   ```cpp
+   #include "plycloud_io.hpp"
+   // or individual headers:
+   #include "plycloud_reader.hpp"
+   #include "plycloud_writer.hpp"
+   #include "plycloud_point.hpp"
+   ```
 
-## Example
-For a holistic illustration, refer to the dispensed structure definitions, such as `PlyPointXYZRGB`, and their enrollment and utilization within the library's source code.
+2. Define your point types and register them using the provided macros
 
-## Note
-The code excerpt provided encompasses a comprehensive anthology of predefined point prototypes (e.g., `PlyPointXYZRGB`, `PlyPointXYZN`) with exemplars of their registration and usage. Tailor or augment these in accordance with your application's requirements.
+3. Use `PlyPointStreamWriter` for writing and `PlyPointStreamReader` for reading
+
+4. Refer to the test file [`plycloud_reader_write_test.cpp`](./src/plycloud_reader_write_test.cpp) for complete examples
+
+## Building
+
+The library uses CMake for building:
+
+```bash
+mkdir build && cd build
+cmake ..
+make
+```
+
+## Examples
+
+For comprehensive examples, see:
+- [`plycloud_reader_write_test.cpp`](./src/plycloud_reader_write_test.cpp) - Complete read/write demonstration
+- Predefined point types in [`plycloud_point.hpp`](./src/plycloud_point.hpp)
+
+## License
+
+This project is open source and available under the [MIT License](./LICENSE).
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.

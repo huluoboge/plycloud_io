@@ -5,87 +5,172 @@
 
 # PlyCloud IO 库
 
-### 概览
+## 概述
 
-PlyCloud IO 提供了一个基于C++模板的框架，用于将点云数据写入PLY文件，同时支持ASCII和二进制两种格式。它包含了定义具有多种属性（如位置、颜色、法线）的点类型、自动生成PLY头部信息以及将点数据流式传输到输出流的功能。
+PlyCloud IO 是一个基于 C++ 模板的库，用于读写 PLY 格式的点云数据。支持二进制和 ASCII 格式，提供灵活的属性映射功能，并自动处理 PLY 文件头的生成和解析。该库设计简洁易用，采用宏注册系统和可自定义的属性映射。
 
-### 主要特性
+## 主要特性
 
-- **模板特化**：利用C++模板自动为向PLY文件写入不同属性类型生成代码。
-- **灵活的点类型**：支持定义带有浮点型、双精度型、int8_t等属性的自定义点结构体，并注册它们以便在生成PLY文件时自动处理。
-- **宏基注册**：提供宏（如REGISTER_PLY_WRITE_POINT）简化新点类型及其属性的注册过程。
-- **流式写入**：通过`PlyPointStreamWriter`和`PlyPointFileStreamWriter`类方便地将点云写入标准或文件流，效率高。
-- **二进制与ASCII支持**：可在优化大小和速度的二进制格式与易于人类阅读的ASCII格式之间选择PLY输出。
-- **头部管理**：动态管理PLY头部部分，在写入点时自动更新，确保记录了正确的顶点计数。
+- **完整的 PLY 支持**: 支持二进制（紧凑快速）和 ASCII（人类可读）两种格式的读写
+- **模板化架构**: 利用 C++ 模板自动生成针对不同点类型的代码
+- **灵活的点类型**: 支持自定义点结构，包含多种属性类型（float、double、int8_t、uint8_t 等）
+- **属性映射**: 支持将多个文件属性映射到单个对象属性（例如 "red" 和 "r" 都映射到 point.red）
+- **宏注册系统**: 使用 `REGISTER_PLY_WRITE_POINT` 和 `REGISTER_PLY_READ_POINT` 宏简化点类型注册
+- **自动头管理**: 动态生成和更新 PLY 文件头，确保顶点计数准确
+- **自定义回调支持**: 支持注册自定义读取函数进行高级属性处理
+- **流式 I/O**: 使用 `PlyPointStreamWriter` 和 `PlyPointStreamReader` 进行灵活的流操作
 
-### 使用方法
+## 使用方法
 
-1. **定义你的点类型**：创建一个继承自`PlyPointXYZ`（或直接定义属性）的结构体，并包含所需的字段（如位置、颜色、强度、法线）。
-2. **注册点类型**：使用提供的宏来注册你的点类型及其属性。例如：
+### 1. 定义点类型
+
+创建包含所需字段（位置、颜色、强度、法线等）的结构体：
+
 ```cpp
-   struct MyPointType {
-       float x, y, z;
-       uint8_t r, g, b;
-   };
-   REGISTER_PLY_WRITE_POINT(MyPointType, (float, x, x)(float, y, y)(float, z, z)(uint8_t, r, r)(uint8_t, g, g)(uint8_t, b, b))
+struct MyPoint {
+    float x, y, z;
+    float red, green, blue;
+};
 ```
-3. **写入流**：使用你的点类型实例化一个PlyPointFileStreamWriter或PlyPointStreamWriter，开始向流写入点。
-### 宏
-- **REGISTER_PLY_WRITE_POINT**：注册点类型及其属性以写入PLY文件。
-- **PLY_REGIST_WRITE_HEAD** 和 **PLY_REGIST_WRITE_POINT**：内部宏，用于注册头部和点写入逻辑。
-- **PLY_WRITE_PROPERTY** 和 **PLY_WRITER_POINT**：辅助宏，分别用于写入属性定义和点。
 
-### 类
-- **PlyPropertyTraits**：模板类，用于将属性类型写入输出流。
-- **PlyWriteHeadTraits** 和 **PlyWritePointTraits**：模板，定义如何写入特定类型的PLY头部和单个点。
-- **PlyPointStreamWriter**：向任意输出流写入点。
-- **PlyPointFileStreamWriter**：针对文件流的特殊写入器，具有额外的文件管理能力。
+### 2. 注册读写点类型
 
-### 依赖项
-
-- 需要Boost Preprocessor进行宏处理。
-
-
-
-
-
-### 示例
+使用提供的宏注册点类型及其属性：
 
 ```cpp
-#include "plycloud_io.hpp"
+// 注册写入功能
+REGISTER_PLY_WRITE_POINT(MyPoint, 
+    (float, x, x)
+    (float, y, y) 
+    (float, z, z)
+    (float, red, red)
+    (float, green, green) 
+    (float, blue, blue)
+)
 
-int main() {
-    // Instantiate a point with coordinates (1, 2, 3)
-    PlyPointXYZIRGBN X;
-    X.x = 1;
-    X.y = 2;
-    X.z = 3;
+// 注册读取功能，支持属性映射
+REGISTER_PLY_READ_POINT(MyPoint,
+    (float, x, x)
+    (float, y, y)
+    (float, z, z)
+    (float, red, red)    // 将 "red" 属性映射到 point.red
+    (float, green, green) // 将 "green" 属性映射到 point.green  
+    (float, blue, blue)   // 将 "blue" 属性映射到 point.blue
+    (float, r, red)       // 同时将 "r" 属性映射到 point.red
+    (float, g, green)     // 同时将 "g" 属性映射到 point.green
+    (float, b, blue)      // 同时将 "b" 属性映射到 point.blue
+)
+```
 
-    // Create a stringstream to hold the output
-    std::stringstream ss;
+### 3. 写入点到流
 
-    // Initialize a PlyPointStreamWriter to write points into the stringstream
-    PlyPointStreamWriter<PlyPointXYZIRGBN> writer(ss);
+```cpp
+#include "plycloud_writer.hpp"
+
+MyPoint point;
+point.x = 1.0f; point.y = 2.0f; point.z = 3.0f;
+point.red = 255.0f; point.green = 128.0f; point.blue = 64.0f;
+
+std::stringstream ss;
+plyio::PlyPointStreamWriter<MyPoint> writer(ss);
+writer.setBinary(true); // 使用二进制格式
+writer.writeHead();
+writer.writePoint(point);
+writer.updateHead(); // 更新文件头中的实际点数
+```
+
+### 4. 从流读取点
+
+```cpp
+#include "plycloud_reader.hpp"
+
+std::stringstream ss(plyData);
+plyio::PlyPointStreamReader reader(ss);
+
+if (reader.readHead()) {
+    reader.printHeader();
+    reader.beginReadPoint<MyPoint>();
     
-    // Set the output format to ASCII (non-binary)
-    writer.setBinary(false);
-
-    // Write the header information for the PLY file
-    writer.writeHead();
-
-    // Write four identical points to the stream
-    writer.writePoint(X);
-    writer.writePoint(X);
-    writer.writePoint(X);
-    writer.writePoint(X);
-
-    // Update the header to reflect the actual number of points written
-    writer.updateHead();
-
-    // Output the stringstream content to console
-    std::cout << ss.str() << std::endl;
-
-    return 0;
+    for (auto it = reader.begin<MyPoint>(); it != reader.end<MyPoint>(); ++it) {
+        const MyPoint& pt = *it;
+        std::cout << "点: (" << pt.x << ", " << pt.y << ", " << pt.z 
+                  << "), 颜色: (" << pt.red << ", " << pt.green << ", " << pt.blue << ")" << std::endl;
+    }
 }
 ```
-完整的示例，请参考提供的结构体定义，如PlyPointXYZRGB，以及它们是如何在库源代码中注册和使用的示例。根据应用需求进行定制或扩展。
+
+## 高级用法：自定义属性映射
+
+对于更复杂的场景，可以使用自定义属性设置器：
+
+```cpp
+std::shared_ptr<plyio::PointAttributeSetter<MyPoint>> setter = 
+    std::make_shared<plyio::PointAttributeSetter<MyPoint>>();
+
+// 注册自定义属性处理器
+setter->registerAttribute("red", [](MyPoint& pt, const plyio::PlyDataType& data) {
+    pt.red = data.as<uint8_t>(); // 从 uint8_t 转换为 float
+});
+setter->registerAttribute("r", [](MyPoint& pt, const plyio::PlyDataType& data) {
+    pt.red = data.as<uint8_t>();
+});
+// ... 注册其他属性
+
+reader.prepareReadFunction(setter);
+```
+
+## 预定义点类型
+
+库在 `plycloud_point.hpp` 中提供了几种常用点类型：
+
+- `PlyPointXYZ`: 基本 3D 坐标
+- `PlyPointXYZRGB`: 3D 坐标带 RGB 颜色
+- `PlyPointXYZIRGB`: 3D 坐标带强度和 RGB 颜色  
+- `PlyPointXYZN`: 3D 坐标带法线
+- `PlyPointXYZIRGBN`: 完整点类型，包含坐标、强度、颜色和法线
+
+## 依赖项
+
+- **C++11** 或更高版本
+- **Boost Preprocessor**（用于宏处理）- 可选但推荐
+
+## 开始使用
+
+1. 在项目中包含库头文件：
+   ```cpp
+   #include "plycloud_io.hpp"
+   // 或单独包含：
+   #include "plycloud_reader.hpp"
+   #include "plycloud_writer.hpp"
+   #include "plycloud_point.hpp"
+   ```
+
+2. 定义点类型并使用提供的宏进行注册
+
+3. 使用 `PlyPointStreamWriter` 进行写入，`PlyPointStreamReader` 进行读取
+
+4. 参考测试文件 [`plycloud_reader_write_test.cpp`](./src/plycloud_reader_write_test.cpp) 获取完整示例
+
+## 构建
+
+库使用 CMake 进行构建：
+
+```bash
+mkdir build && cd build
+cmake ..
+make
+```
+
+## 示例
+
+完整示例请参见：
+- [`plycloud_reader_write_test.cpp`](./src/plycloud_reader_write_test.cpp) - 完整的读写演示
+- 预定义点类型在 [`plycloud_point.hpp`](./src/plycloud_point.hpp)
+
+## 许可证
+
+本项目开源，使用 [MIT 许可证](./LICENSE)。
+
+## 贡献
+
+欢迎贡献！请随时提交 pull request 或为 bug 和功能请求创建 issue。
